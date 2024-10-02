@@ -1,0 +1,288 @@
+import customtkinter as ctk
+from tkinter import messagebox, ttk
+import mysql.connector
+from mysql.connector import Error
+import csv
+from datetime import datetime 
+ 
+# Database setup
+def setup_database():
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+        if connection.is_connected():
+            cursor = connection.cursor()
+            cursor.execute("DROP TABLE IF EXISTS usuario")
+            cursor.execute("DROP TABLE IF EXISTS dieta")
+            cursor.execute("DROP TABLE IF EXISTS alimento")
+            cursor.execute("DROP TABLE IF EXISTS refeicao")
+            cursor.execute("DROP TABLE IF EXISTS refeicao_alimento")
+            
+            cursor.execute('''CREATE TABLE usuario (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255),
+                email VARCHAR(255),
+                tipo ENUM('nutrólogo', 'paciente')
+            )''')
+ 
+            cursor.execute('''CREATE TABLE dieta (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255),
+                calorias_totais INT
+            )''')
+ 
+            cursor.execute('''CREATE TABLE alimento (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255),
+                calorias INT,
+                proteinas FLOAT,
+                carboidratos FLOAT,
+                gorduras FLOAT
+            )''')
+ 
+            cursor.execute('''CREATE TABLE refeicao (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255),
+                horario TIME,
+                id_dieta INT,
+                FOREIGN KEY (id_dieta) REFERENCES dieta (id)
+            )''')
+ 
+            cursor.execute('''CREATE TABLE refeicao_alimento (
+                id_refeicao INT,
+                id_alimento INT,
+                quantidade FLOAT,
+                FOREIGN KEY (id_refeicao) REFERENCES refeicao (id),
+                FOREIGN KEY (id_alimento) REFERENCES alimento (id)
+            )''')
+ 
+            connection.commit()
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+# Diet management functions
+def add_dieta(nome, calorias_totais):
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO dieta (nome, calorias_totais) VALUES (%s, %s)", (nome, calorias_totais))
+        connection.commit()
+        messagebox.showinfo("Success", "Dieta cadastrada com sucesso!")
+    except Error as e:
+        messagebox.showerror("Error", f"Erro ao cadastrar dieta: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+def list_dietas():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='diestas_usp'
+        )
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM dieta")
+        return cursor.fetchall()
+    except Error as e:
+        messagebox.showerror("Error", f"Erro ao listar dietas: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+# Food management functions
+def add_alimento(nome, calorias, proteinas, carboidratos, gorduras):
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO alimento (nome, calorias, proteinas, carboidratos, gorduras) VALUES (%s, %s, %s, %s, %s)",
+                       (nome, calorias, proteinas, carboidratos, gorduras))
+        connection.commit()
+        messagebox.showinfo("Success", "Alimento cadastrado com sucesso!")
+    except Error as e:
+        messagebox.showerror("Error", f"Erro ao cadastrar alimento: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+def list_alimentos():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM alimento")
+        return cursor.fetchall()
+    except Error as e:
+        messagebox.showerror("Error", f"Erro ao listar alimentos: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+# Meal planning functions
+def add_refeicao(nome, horario, id_dieta):
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO refeicao (nome, horario, id_dieta) VALUES (%s, %s, %s)", (nome, horario, id_dieta))
+        connection.commit()
+        messagebox.showinfo("Success", "Refeição cadastrada com sucesso!")
+    except Error as e:
+        messagebox.showerror("Error", f"Erro ao cadastrar refeição: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+ 
+# GUI Class
+class DietaApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("GERENCIAMENTO DE DIETAS")
+        self.geometry("700x500")
+        
+        # Add Diet
+        self.label_dieta = ctk.CTkLabel(self, text="Cadastro de Dietas")
+        self.label_dieta.pack()
+        self.nome_dieta_entry = ctk.CTkEntry(self, placeholder_text="Nome da Dieta")
+        self.nome_dieta_entry.pack()
+        self.calorias_dieta_entry = ctk.CTkEntry(self, placeholder_text="Calorias Totais")
+        self.calorias_dieta_entry.pack()
+        self.btn_add_dieta = ctk.CTkButton(self, text="Adicionar Dieta", command=self.cadastrar_dieta)
+        self.btn_add_dieta.pack()
+ 
+        # Add Food
+        self.label_alimento = ctk.CTkLabel(self, text="Cadastro de Alimentos")
+        self.label_alimento.pack()
+        self.nome_alimento_entry = ctk.CTkEntry(self, placeholder_text="Nome do Alimento")
+        self.nome_alimento_entry.pack()
+        self.calorias_entry = ctk.CTkEntry(self, placeholder_text="Calorias")
+        self.calorias_entry.pack()
+        self.proteinas_entry = ctk.CTkEntry(self, placeholder_text="Proteínas")
+        self.proteinas_entry.pack()
+        self.carboidratos_entry = ctk.CTkEntry(self, placeholder_text="Carboidratos")
+        self.carboidratos_entry.pack()
+        self.gorduras_entry = ctk.CTkEntry(self, placeholder_text="Gorduras")
+        self.gorduras_entry.pack()
+        self.btn_add_alimento = ctk.CTkButton(self, text="Adicionar Alimento", command=self.cadastrar_alimento)
+        self.btn_add_alimento.pack()
+ 
+        # Add Meal
+        self.label_refeicao = ctk.CTkLabel(self, text="Cadastro de Refeições")
+        self.label_refeicao.pack()
+        self.nome_refeicao_entry = ctk.CTkEntry(self, placeholder_text="Nome da Refeição")
+        self.nome_refeicao_entry.pack()
+        self.horario_refeicao_entry = ctk.CTkEntry(self, placeholder_text="Horário (HH:MM)")
+        self.horario_refeicao_entry.pack()
+        self.id_dieta_entry = ctk.CTkEntry(self, placeholder_text="ID da Dieta")
+        self.id_dieta_entry.pack()
+        self.btn_add_refeicao = ctk.CTkButton(self, text="Adicionar Refeição", command=self.cadastrar_refeicao)
+        self.btn_add_refeicao.pack()
+ 
+    def cadastrar_dieta(self):
+        add_dieta(self.nome_dieta_entry.get(), self.calorias_dieta_entry.get())
+ 
+    def cadastrar_alimento(self):
+        add_alimento(self.nome_alimento_entry.get(), self.calorias_entry.get(),
+                     self.proteinas_entry.get(), self.carboidratos_entry.get(),
+                     self.gorduras_entry.get())
+ 
+    def cadastrar_refeicao(self):
+        add_refeicao(self.nome_refeicao_entry.get(), self.horario_refeicao_entry.get(),
+                     self.id_dieta_entry.get())
+        
+def gerar_relatorio_dietas():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='acesso123',
+            database='dietas_usp'
+        )
+ 
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM dietas_usp")
+        rows = cursor.fetchall()
+       
+        relatorio_window = ctk.Toplevel()
+        relatorio_window.title("Relatório de Dietas")
+        tree = ttk.Treeview(relatorio_window, columns=("ID", "Paciente", "Diária", "Semanal",), show="headings")
+       
+        tree.heading("ID", text="ID")
+        tree.heading("Paciente", text="Paciente")
+        tree.heading("Diária", text="Diária")
+        tree.heading("Semanal", text="Semanal")
+       
+        for row in rows:
+            tree.insert("", ctk.END, values=row)
+       
+        tree.pack(expand=True, fill=ctk.BOTH)
+        ttk.Button(relatorio_window, text="Fechar", command=relatorio_window.destroy).pack()
+    except Error as e:
+        messagebox.showerror("Erro", f"Erro ao gerar relatório: {e}")
+    finally:
+        if connection and connection.is_connected():
+            ctk.CTkButton(relatorio_window, text="Gerar Relatório", command=gerar_relatorio_dietas).pack()
+            cursor.close()
+            connection.close()
+ 
+# Login Window
+def login_window():  
+    def login():
+        username = entry_user.get()
+        password = entry_pass.get()
+        if username == "root" and password == "acesso123":
+            messagebox.showinfo("Login", "Login Bem-Sucedido!")
+            window.destroy()
+            app = DietaApp()
+            app.mainloop()
+        else:
+            messagebox.showerror("Login", "Usuário ou Senha Inválidos.")
+ 
+    window = ctk.CTk()
+    window.title("TELA DE LOGIN")
+    window.geometry("400x200")
+    ctk.CTkLabel(window, text="Usuário:").pack()
+    entry_user = ctk.CTkEntry(window)
+    entry_user.pack()
+    ctk.CTkLabel(window, text="Senha:").pack()
+    entry_pass = ctk.CTkEntry(window, show='*')
+    entry_pass.pack()
+    ctk.CTkButton(window, text="Login", command=login).pack()
+    window.mainloop()
+ 
+if __name__ == "__main__":
+    setup_database()
+    login_window()
